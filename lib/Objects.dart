@@ -2,6 +2,12 @@ class Drone {
   late int id;
   late int busy;
   Drone(this.id, this.busy);
+
+  List<int> getbusy() {
+    List<int> list = [id, busy];
+    return list;
+  }
+
 }
 class Data {
   late int um03, um05, um10, um25, um50, um100, task, id;
@@ -29,5 +35,9 @@ class Task {
 
   int getStatus() {
     return status;
+  }
+
+  int getID() {
+    return id;
   }
 }

@@ -40,13 +40,14 @@ class DBHandler {
     }
     return data;
   }
-  Future<Task> getTask(int taskid) async {
-    List<Task> task = [];
+  Future<List<Task>> getTasks() async {
+    List<Task> tasks = [];
     var conn = await MySqlConnection.connect(settings);
-    var results = await conn.query("select * from task where id = '" + taskid.toString() + "'");
+    var results = await conn.query("SELECT * FROM task");
+    print("Sunt aici");
     for (var row in results) {
-      task.add(Task(row[0], row[1], row[2], row[3]));
+      tasks.add(Task(row[0], row[1], row[2], row[3]));
     }
-    return task[0];
+    return tasks;
   }
 }

@@ -39,7 +39,6 @@ class _NewMapState extends State<NewMap>{
 
   void sendTask() {
     db.addTask(point.latitude, point.longitude, widget.drone);
-    print(loc);
     Navigator.pop(context);
     Navigator.pop(context);
   }
@@ -70,7 +69,6 @@ class _NewMapState extends State<NewMap>{
               cameraPosition = cameraPositiona; //when map is dragging
             },
             onCameraIdle: () async { //when map drag stops
-              print(1);
               List<gc.Placemark> placemarks = await gc.placemarkFromCoordinates(
                   cameraPosition!.target.latitude,
                   cameraPosition!.target.longitude);
@@ -96,7 +94,7 @@ class _NewMapState extends State<NewMap>{
                       width: MediaQuery.of(context).size.width - 40,
                       child: ListTile(
                         leading: Image.asset("assets/images/picker.png", width: 20,),
-                        title:Text(loc, style: TextStyle(fontSize: 18),),
+                        title:Text(loc, style: const TextStyle(fontSize: 18),),
                         dense: true,
                       )
                   ),
@@ -115,7 +113,8 @@ class _NewMapState extends State<NewMap>{
                 backgroundColor: Colors.blue[700],
                 shape: const RoundedRectangleBorder(),
                 child: const Text(
-                    "Submit!"
+                    "Submit!",
+                    style: TextStyle(fontSize: 25),
                 ),
               ),
             ),
@@ -158,17 +157,42 @@ class _SecondRouteState extends State<SecondRoute> {
                 padding: const EdgeInsets.all(8),
                 itemBuilder: (BuildContext context, int index) {
                   // return Text((snapshot.data![index].id).toString());
-                  return TextButton(
-                    style: ButtonStyle(
-                      foregroundColor: MaterialStateProperty.all<Color>(
-                          Colors.blue),
-                     // backgroundColor: Colors.white,
-                    ),
-                    onPressed: () {
-                      goToNewMap(snapshot.data![index].id);
-                    },
-                    child: Text((snapshot.data![index].id).toString()),
-                  );
+                  if(snapshot.data![index].busy==0) {
+                    return TextButton(
+                      //style: ButtonStyle(
+                        //foregroundColor: MaterialStateProperty.all<Color>(
+                            //Colors.blue),
+                      //),
+                      style: TextButton.styleFrom(
+                      primary: Colors.green[700],
+                      ),
+                      onPressed: () {
+                        goToNewMap(snapshot.data![index].id);
+                      },
+                      child: Text(
+                        "Drone ${snapshot.data![index].id}",
+                        style: const TextStyle(fontSize: 25),
+                      ),
+
+                    );
+                  }
+                  else {
+                    return TextButton(
+                      //style: ButtonStyle(
+                        //foregroundColor: MaterialStateProperty.all<Color>(
+                            //Colors.blue),
+                      style: TextButton.styleFrom(
+                            primary: Colors.red[700],
+                      ),
+                      onPressed: () {
+                        goToNewMap(snapshot.data![index].id);
+                      },
+                      child: Text(
+                        "Drone ${snapshot.data![index].id}",
+                        style: const TextStyle(fontSize: 25),
+                      ),
+                    );
+                  }
                 }
             ),
             );
@@ -185,25 +209,35 @@ class _SecondRouteState extends State<SecondRoute> {
 class _MapScreenState extends State<MapScreen> {
   DBHandler db = DBHandler();
   GoogleMapController? _controller;
+  CameraPosition? cameraPosition;
   Location currentLocation = Location();
   Set<Marker> _markers={};
 
   final Set<Circle> _circles = HashSet<Circle>();
 
-  double radius=2250.0;
+  double radius=250.0;
+
+  List<bool> marked = [];
+  List<double> ll = [];
+  List<double> sums = [];
+  List<int> nr = [];
+
+  bool showed = false;
 
   int _circleIdCounter = 1;
+  int _markerIdCounter = 1;
+  double sum = 0;
 
   void goToDroneScreen() {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (BuildContext context) => SecondRoute(),
+        builder: (BuildContext context) => const SecondRoute(),
       ),
     );
   }
 
-  void _setCircle(double lat, double long) {
+  void _setCircle(double lat, double long, Color clr) {
     final String circleIdVal = 'marker_id_$_circleIdCounter';
     _circleIdCounter++;
     LatLng point = LatLng(lat, long);
@@ -213,28 +247,41 @@ class _MapScreenState extends State<MapScreen> {
         circleId: CircleId(circleIdVal),
         center:  point,
         radius: radius,
-        fillColor: Colors.redAccent.withOpacity(0.25),
-        strokeWidth: 1,
-        strokeColor: Colors.redAccent
+        fillColor: clr.withOpacity(0.25),
+        strokeWidth: 2,
+        strokeColor: clr
       ));
   }
 
   void cameraFix() async {
     var location = await currentLocation.getLocation();
+    final String markerIdVal = 'marker_id_$_markerIdCounter';
+    _markerIdCounter++;
     currentLocation.onLocationChanged.listen((LocationData loc){
 
       _controller?.animateCamera(CameraUpdate.newCameraPosition(CameraPosition(
         target: LatLng(loc.latitude ?? 0.0,loc.longitude?? 0.0),
         zoom: 15.0,
       )));
+      setState(() {
+        _markers.add(
+          Marker(markerId: MarkerId(markerIdVal),
+            position: LatLng(loc.latitude ?? 0.0,loc.longitude?? 0.0),
+            ),
+          );
       });
+    });
   }
 
   void clearCircles() async{
-    print(_circles);
     _circles.clear();
-    print(db.getData());
   }
+
+  /*void clearMarkers() async{
+    setState(() {
+      _markers.clear();
+    });
+  }*/
 
   void getLocation() async{
     var location = await currentLocation.getLocation();
@@ -250,6 +297,8 @@ class _MapScreenState extends State<MapScreen> {
   @override
   void initState(){
     super.initState();
+    sums = List.filled(1000, 0.0);
+    nr = List.filled(1000, 0);
     /*setState(() {
       getLocation();
     });*/
@@ -260,7 +309,7 @@ class _MapScreenState extends State<MapScreen> {
     print(db.getData());
     return Scaffold(
       appBar: AppBar(
-        title: Text("AsthMap"),
+        title: Text("Allergy Map"),
         centerTitle: true,
         backgroundColor: Colors.blue[700],
       ),
@@ -275,19 +324,71 @@ class _MapScreenState extends State<MapScreen> {
           ),
           onMapCreated: (GoogleMapController controller){
             _controller = controller;
+            clearCircles();
+          },
+          onCameraMove: (CameraPosition cameraPositiona) {
+            cameraPosition = cameraPositiona;
+            //_markers.clear();
           },
           onCameraIdle: () async { //when map drag stops
-            print(1);
-            List rows = await db.getData();
-            for(int i=0;i<rows.length;++i) {
-              print(rows[i].getTsk());
-                Task task= await db.getTask(rows[i].getTsk());
-                print(task.getStatus());
-                if(task.getStatus()==3) {
-                  List ll = task.ll();
-                  _setCircle(ll[0], ll[1]);
+            print("AM INTRAT");
+            List<Data> data = await db.getData();
+            print(data.length);
+            for (Data d in data) {
+                  sums[d.task] += d.um25;
+                  nr[d.task]++;
+            }
+            print("INAINTE");
+            List<Task> tasks = await db.getTasks();
+            for (Task task in tasks) {
+                if (task.status == 3) {
+                  double value = sums[task.id] / nr[task.id];
+                  print(value);
+                  print(sums[task.id]);
+                  print(nr[task.id]);
+                  print(task.id);
+                  if (value <= 15.0) {
+                    setState(() {
+                      //clearCircles();
+                      _setCircle(task.lat, task.lon, Colors.greenAccent);
+                    });
+                  }
+                  else if (value <= 50.0) {
+                    setState(() {
+                      //clearCircles();
+                      _setCircle(task.lat, task.lon, Colors.orangeAccent);
+                    });
+                  }
+                  else {
+                    setState(() {
+                      //clearCircles();
+                      _setCircle(task.lat, task.lon, Colors.redAccent);
+                    });
+                  }
                 }
             }
+
+            /*for(int i=0;i<rows.length;++i) {
+              sums[rows[i].getTsk()]/=rows.length;
+              if(sums[rows[i].getTsk()]<=25.0) {
+                setState(() {
+                  clearCircles();
+                  _setCircle(ll[0], ll[1], Colors.greenAccent);
+                });
+              }
+              else if(sums[rows[i].getTsk()]>25.0 && sum<=35.0) {
+                setState(() {
+                  clearCircles();
+                  _setCircle(ll[0], ll[1], Colors.orangeAccent);
+                });
+              }
+              else if(sums[rows[i].getTsk()]>35.0) {
+                setState(() {
+                  clearCircles();
+                  _setCircle(ll[0], ll[1], Colors.redAccent);
+                });
+              }
+            }*/
           },
           markers: _markers,
           circles: _circles,
@@ -332,12 +433,12 @@ class _MapScreenState extends State<MapScreen> {
               ),
             ),
           ),
-          Positioned(
+          /*Positioned(
             left: 30,
             top: 120,
             child: FloatingActionButton(
               heroTag: 'clear',
-              onPressed: () {clearCircles();},
+              onPressed: () {clearMarkers();},
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),
               ),
@@ -347,9 +448,7 @@ class _MapScreenState extends State<MapScreen> {
                 size: 40,
               ),
             ),
-          ),
-          // Add more floating buttons if you want
-          // There is no limit
+          ),*/
         ],
       ),
     );
