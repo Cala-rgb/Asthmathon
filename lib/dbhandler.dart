@@ -2,11 +2,11 @@ import 'package:asthmathon/Objects.dart';
 import 'package:mysql1/mysql1.dart';
 
 class DBHandler {
-  static String host = "192.168.0.1";
+  static String host = "10.0.2.2";
   static int port = 3306;
-  static String user = "pi2";
-  static String password = "password";
-  static String db = "drone";
+  static String user = 'cala';
+  static String password = 'cala';
+  static String db = "testasthamthon";
   static var settings;
   DBHandler() {
     settings = ConnectionSettings(

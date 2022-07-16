@@ -1,11 +1,11 @@
 import 'dart:collection';
-
 import 'package:asthmathon/Objects.dart';
 import 'package:asthmathon/dbhandler.dart';
 import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart' as gc;
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:location/location.dart';
+import 'package:prompt_dialog/prompt_dialog.dart';
 
 
 
@@ -42,7 +42,11 @@ class _NewMapState extends State<NewMap>{
     Navigator.pop(context);
     Navigator.pop(context);
   }
-  
+
+  //!
+  //NEW MAP
+  //!
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -113,7 +117,7 @@ class _NewMapState extends State<NewMap>{
                 backgroundColor: Colors.blue[700],
                 shape: const RoundedRectangleBorder(),
                 child: const Text(
-                    "Submit!",
+                    "Send Drone!",
                     style: TextStyle(fontSize: 25),
                 ),
               ),
@@ -132,7 +136,7 @@ class SecondRoute extends StatefulWidget {
 }
 
 class _SecondRouteState extends State<SecondRoute> {
-  void goToNewMap(int index) {
+  void goToNewMap(int index, int busy) {
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -141,6 +145,29 @@ class _SecondRouteState extends State<SecondRoute> {
     );
   }
 
+  void alert() {
+    showDialog(
+        context: context,
+        builder: (BuildContext context){
+          return AlertDialog(
+            title: const Text("Oops!"),
+            content: const Text("Drone is currently in use!"),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  },
+                child: const Text("Close"),
+              )
+            ],
+          );
+        }
+    );
+  }
+
+  //!
+  //LISTA DRONE
+  //!
   @override
   Widget build(BuildContext context) {
     DBHandler db = DBHandler();
@@ -153,50 +180,50 @@ class _SecondRouteState extends State<SecondRoute> {
                 title: Text("Drones"),
               ),
               body: ListView.builder(
-                itemCount: snapshot.data?.length,
-                padding: const EdgeInsets.all(8),
-                itemBuilder: (BuildContext context, int index) {
-                  // return Text((snapshot.data![index].id).toString());
-                  if(snapshot.data![index].busy==0) {
-                    return TextButton(
-                      //style: ButtonStyle(
+                  itemCount: snapshot.data?.length,
+                  padding: const EdgeInsets.all(8),
+                  itemBuilder: (BuildContext context, int index) {
+                    // return Text((snapshot.data![index].id).toString());
+                    if (snapshot.data![index].busy == 0) {
+                      return TextButton(
+                        //style: ButtonStyle(
                         //foregroundColor: MaterialStateProperty.all<Color>(
-                            //Colors.blue),
-                      //),
-                      style: TextButton.styleFrom(
-                      primary: Colors.green[700],
-                      ),
-                      onPressed: () {
-                        goToNewMap(snapshot.data![index].id);
-                      },
-                      child: Text(
-                        "Drone ${snapshot.data![index].id}",
-                        style: const TextStyle(fontSize: 25),
-                      ),
+                        //Colors.blue),
+                        //),
+                        style: TextButton.styleFrom(
+                          primary: Colors.green[700],
+                        ),
+                        onPressed: () {
+                          goToNewMap(snapshot.data![index].id,
+                              snapshot.data![index].id);
+                        },
+                        child: Text(
+                          "Drone ${snapshot.data![index].id}",
+                          style: const TextStyle(fontSize: 25),
+                        ),
 
-                    );
-                  }
-                  else {
-                    return TextButton(
-                      //style: ButtonStyle(
+                      );
+                    }
+                    else {
+                      return TextButton(
+                        //style: ButtonStyle(
                         //foregroundColor: MaterialStateProperty.all<Color>(
-                            //Colors.blue),
-                      style: TextButton.styleFrom(
-                            primary: Colors.red[700],
-                      ),
-                      onPressed: () {
-                        goToNewMap(snapshot.data![index].id);
-                      },
-                      child: Text(
-                        "Drone ${snapshot.data![index].id}",
-                        style: const TextStyle(fontSize: 25),
-                      ),
-                    );
+                        //Colors.blue),
+                        style: TextButton.styleFrom(
+                          primary: Colors.red[700],
+                        ),
+                        onPressed: () {
+                          alert();
+                        },
+                        child: Text(
+                          "Drone ${snapshot.data![index].id}",
+                          style: const TextStyle(fontSize: 25),
+                        ),
+                      );
+                    }
                   }
-                }
-            ),
+              ),
             );
-
           }
           else {
             return const Center(child: CircularProgressIndicator());
@@ -206,6 +233,9 @@ class _SecondRouteState extends State<SecondRoute> {
   }
 }
 
+//!
+//MAIN SCREEN
+//!
 class _MapScreenState extends State<MapScreen> {
   DBHandler db = DBHandler();
   GoogleMapController? _controller;

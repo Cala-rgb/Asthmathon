@@ -41,6 +41,7 @@ dependencies:
   material: ^1.0.0+2
   geocoding: ^2.0.4
   mysql1: ^0.19.2
+  prompt_dialog: ^1.0.9
 
 dev_dependencies:
   flutter_test:
