@@ -246,6 +246,8 @@ class _MapScreenState extends State<MapScreen> {
   final Set<Circle> _circles = HashSet<Circle>();
 
   double radius=250.0;
+  double radiusToLatLon = 0.0065/2;
+  //radius 250 = latlong .0065
 
   List<bool> marked = [];
   List<double> ll = [];
@@ -334,6 +336,15 @@ class _MapScreenState extends State<MapScreen> {
     });*/
   }
 
+  bool alreadyCircled(double lat, double lon) {
+    for(Circle circle in _circles) {
+        if(circle.center == LatLng(lat,lon)) {
+          return false;
+        }
+    }
+    return true;
+  }
+
   @override
   Widget build(BuildContext context) {
     print(db.getData());
@@ -361,6 +372,8 @@ class _MapScreenState extends State<MapScreen> {
             //_markers.clear();
           },
           onCameraIdle: () async { //when map drag stops
+            _setCircle(45.75372, 21.22571, Colors.orangeAccent);
+            //_setCircle(45.75372, 21.23221, Colors.orangeAccent);
             print("AM INTRAT");
             List<Data> data = await db.getData();
             print(data.length);
@@ -377,19 +390,19 @@ class _MapScreenState extends State<MapScreen> {
                   print(sums[task.id]);
                   print(nr[task.id]);
                   print(task.id);
-                  if (value <= 15.0) {
+                  if (value <= 15.0 && !alreadyCircled(task.lat, task.lon)) {
                     setState(() {
                       //clearCircles();
                       _setCircle(task.lat, task.lon, Colors.greenAccent);
                     });
                   }
-                  else if (value <= 50.0) {
+                  else if (value <= 50.0 && !alreadyCircled(task.lat, task.lon)) {
                     setState(() {
                       //clearCircles();
                       _setCircle(task.lat, task.lon, Colors.orangeAccent);
                     });
                   }
-                  else {
+                  else if (!alreadyCircled(task.lat, task.lon)) {
                     setState(() {
                       //clearCircles();
                       _setCircle(task.lat, task.lon, Colors.redAccent);
@@ -397,7 +410,6 @@ class _MapScreenState extends State<MapScreen> {
                   }
                 }
             }
-
             /*for(int i=0;i<rows.length;++i) {
               sums[rows[i].getTsk()]/=rows.length;
               if(sums[rows[i].getTsk()]<=25.0) {
@@ -422,6 +434,19 @@ class _MapScreenState extends State<MapScreen> {
           },
           markers: _markers,
           circles: _circles,
+          onTap: (LatLng latLng){
+            var lat = latLng.latitude;
+            var lon = latLng.longitude;
+            for(Circle circle in _circles) {
+              var center = circle.center;
+              var circlelat = center.latitude;
+              var circlelon = center.longitude;
+              //radiusToLatLon = (radius * 2.6)/100000;
+              if(lat >= circlelat - radiusToLatLon && lat <= circlelat + radiusToLatLon && lon >= circlelon - radiusToLatLon && lon <= circlelon + radiusToLatLon) {
+                print("11111111111111111111111111111111111111111111111111");
+              }
+            }
+          },
         ) ,
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
